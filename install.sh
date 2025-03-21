@@ -16,14 +16,6 @@ apt update && apt install -y python3 python3-pip sqlite3 unzip jq curl wget wire
 echo "نصب virtualenv..."
 pip3 install virtualenv || { echo "خطا در نصب virtualenv"; exit 1; }
 
-# دانلود و نصب Xray
-echo "دانلود و نصب Xray..."
-curl -Lo xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip || { echo "خطا در دانلود Xray"; exit 1; }
-unzip -o xray.zip -d xray || { echo "خطا در استخراج فایل Xray"; exit 1; }
-mv xray/xray /usr/local/bin/xray || { echo "خطا در انتقال فایل Xray"; exit 1; }
-chmod +x /usr/local/bin/xray || { echo "خطا در تنظیم دسترسی‌های Xray"; exit 1; }
-rm -rf xray xray.zip
-
 # تنظیم دایرکتوری پروژه
 PROJECT_DIR="/opt/backend"
 mkdir -p $PROJECT_DIR
@@ -71,38 +63,123 @@ pip install -r requirements.txt || { echo "خطا در نصب وابستگی‌�
 # تنظیم دسترسی‌ها
 chmod -R 755 $PROJECT_DIR || { echo "خطا در تنظیم دسترسی‌ها"; exit 1; }
 
-# مدیریت دامنه‌ها
-echo "آیا می‌خواهید دامنه‌ای اضافه کنید یا دامنه‌های جدیدی ثبت کنید؟ (y/n)"
+# پرسش از کاربر درباره دامنه
+echo "آیا می‌خواهید دامنه‌ای اضافه کنید و برای آن گواهی TLS دریافت کنید؟ (y/n)"
 read -r ADD_DOMAIN
 
 if [[ "$ADD_DOMAIN" == "y" ]]; then
-    # دریافت دامنه‌ها از کاربر
-    echo "لطفاً دامنه جدید را وارد کنید:"
+    # دریافت نام دامنه از کاربر
+    echo "لطفاً دامنه مورد نظر را وارد کنید:"
     read -r DOMAIN_NAME
 
+    # اجرای Certbot برای دریافت گواهی دامنه
     echo "دریافت گواهی‌های TLS برای دامنه $DOMAIN_NAME..."
-    certbot certonly --standalone --agree-tos --email your-email@example.com -d "$DOMAIN_NAME" || { echo "خطا در دریافت گواهی‌های TLS برای $DOMAIN_NAME"; exit 1; }
+    certbot certonly --standalone --agree-tos --email your-email@example.com -d "$DOMAIN_NAME" || { echo "خطا در دریافت گواهی‌های TLS"; exit 1; }
 
-    # به‌روزرسانی کانفیگ Xray
+    # تنظیم مسیر فایل‌های گواهی در کانفیگ Xray
     CERT_PATH="/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem"
     KEY_PATH="/etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem"
-    echo "به‌روزرسانی کانفیگ Xray با دامنه جدید $DOMAIN_NAME..."
-    CONFIG_FILE="/usr/local/etc/xray/config.json"
-    jq ".inbounds[0].streamSettings.tlsSettings.certificates += [{\"certificateFile\": \"$CERT_PATH\", \"keyFile\": \"$KEY_PATH\"}]" "$CONFIG_FILE" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE"
+else
+    echo "گواهی Self-Signed برای سرور ایجاد می‌شود..."
+
+    # ایجاد گواهی Self-Signed
+    mkdir -p /etc/selfsigned
+    openssl req -newkey rsa:2048 -nodes -keyout /etc/selfsigned/selfsigned.key -x509 -days 365 -out /etc/selfsigned/selfsigned.crt -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+
+    # تنظیم مسیر فایل‌های گواهی Self-Signed در کانفیگ Xray
+    CERT_PATH="/etc/selfsigned/selfsigned.crt"
+    KEY_PATH="/etc/selfsigned/selfsigned.key"
 fi
 
-# تنظیم مسیر WebSocket در Xray
-echo "تنظیم مسیر WebSocket در کانفیگ Xray..."
-CONFIG_FILE="/usr/local/etc/xray/config.json"
-jq '.inbounds[0].streamSettings += {"wsSettings": {"path": "/websocket"}}' "$CONFIG_FILE" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE"
+# ایجاد فایل کانفیگ Xray با مسیر فایل‌های گواهی
+echo "ایجاد فایل کانفیگ Xray..."
+mkdir -p /usr/local/etc/xray || { echo "خطا در ایجاد دایرکتوری کانفیگ Xray"; exit 1; }
+cat <<EOL > /usr/local/etc/xray/config.json
+{
+  "log": {
+    "loglevel": "info"
+  },
+  "inbounds": [
+    {
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {
+            "id": "$UUID",
+            "level": 0,
+            "email": "default@example.com"
+          }
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "certificates": [
+            {
+              "certificateFile": "$CERT_PATH",
+              "keyFile": "$KEY_PATH"
+            }
+          ]
+        },
+        "wsSettings": {
+          "path": "/websocket"
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}
+EOL
 
-# راه‌اندازی سرویس‌ها
-echo "راه‌اندازی مجدد سرویس Xray..."
-systemctl daemon-reload
-systemctl restart xray.service || { echo "خطا در راه‌اندازی Xray"; exit 1; }
+# پیکربندی و راه‌اندازی WireGuard
+echo "ایجاد فایل کانفیگ WireGuard..."
+cat <<EOL > /etc/wireguard/wg0.conf
+[Interface]
+PrivateKey = $WG_PRIVATE_KEY
+Address = 10.0.0.1/24
+ListenPort = 51820
+PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
+[Peer]
+PublicKey = $WG_CLIENT_PUBLIC_KEY
+AllowedIPs = 10.0.0.2/32
+EOL
+
+chmod 600 /etc/wireguard/wg0.conf
+echo "ایجاد فایل کانفیگ کلاینت WireGuard..."
+cat <<EOL > ~/wg-client.conf
+[Interface]
+PrivateKey = $WG_CLIENT_PRIVATE_KEY
+Address = 10.0.0.2/24
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = $WG_PUBLIC_KEY
+Endpoint = $(curl -s ifconfig.me):51820
+AllowedIPs = 0.0.0.0/0, ::/0
+PersistentKeepalive = 25
+EOL
+
+# راه‌اندازی سرویس WireGuard
 echo "راه‌اندازی سرویس WireGuard..."
 systemctl enable wg-quick@wg0
 systemctl start wg-quick@wg0 || { echo "خطا در راه‌اندازی WireGuard"; exit 1; }
 
+# ریستارت سرویس Xray
+echo "راه‌اندازی سرویس Xray..."
+systemctl daemon-reload
+systemctl enable xray.service
+systemctl start xray.service || { echo "خطا در راه‌اندازی Xray"; exit 1; }
+
+# اتمام نصب
 echo "نصب و پیکربندی با موفقیت انجام شد!"
+echo "فایل‌های کانفیگ در مسیر‌های مربوطه ذخیره شده‌اند."
