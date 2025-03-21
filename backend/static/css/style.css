@@ -1,0 +1,36 @@
+/* تنظیمات عمومی */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #e8f5e9;
+    color: #333;
+    direction: ltr;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #4caf50;
+    color: white;
+    border-bottom: 3px solid #2e7d32;
+}
+
+header h1 {
+    font-family: 'Cursive', serif;
+    font-size: 28px;
+    margin: 0;
+}
+
+nav a {
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    color: #c8e6c9;
+}
