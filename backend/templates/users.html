@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="users">
+    <h2>User Management 👤</h2>
+
+    <!-- فرم ایجاد کاربر جدید -->
+    <div class="create-user">
+        <h3>Create New User ✨</h3>
+        <form action="/users" method="post">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="traffic_limit">Traffic Limit (GB):</label>
+            <input type="number" id="traffic_limit" name="traffic_limit" required>
+            
+            <label for="usage_duration">Usage Duration (Days):</label>
+            <input type="number" id="usage_duration" name="usage_duration" required>
+            
+            <button type="submit">Create User</button>
+        </form>
+    </div>
+
+    <!-- لیست کاربران -->
+    <div class="user-list">
+        <h3>Active Users 📝</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Traffic Limit</th>
+                    <th>Used Traffic</th>
+                    <th>Usage Duration</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>JohnDoe</td>
+                    <td>100 GB</td>
+                    <td>50 GB</td>
+                    <td>30 Days</td>
+                    <td>
+                        <button>Edit</button>
+                        <button>Extend</button>
+                        <button>Delete</button>
+                    </td>
+                </tr>
+                <!-- سایر کاربران در اینجا نمایش داده می‌شوند -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
