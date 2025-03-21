@@ -1,0 +1,27 @@
+.users {
+    margin-top: 20px;
+}
+
+.create-user {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #4caf50;
+    border-radius: 10px;
+    background-color: #f1f8e9;
+}
+
+.user-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-list th, .user-list td {
+    border: 1px solid #c8e6c9;
+    padding: 10px;
+    text-align: center;
+}
+
+.user-list th {
+    background-color: #4caf50;
+    color: white;
+}
