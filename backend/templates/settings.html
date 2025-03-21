@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="settings">
+    <h2>Settings ⚙️</h2>
+
+    <!-- بخش تنظیمات عمومی -->
+    <div class="general-settings">
+        <h3>General Settings 🌍</h3>
+        <form action="/settings/general" method="post">
+            <label for="language">Language:</label>
+            <select id="language" name="language">
+                <option value="en">English</option>
+                <option value="fa">فارسی</option>
+            </select>
+            
+            <label for="theme">Theme:</label>
+            <select id="theme" name="theme">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+
+            <label for="notifications">Enable Notifications:</label>
+            <input type="checkbox" id="notifications" name="notifications">
+            
+            <button type="submit">Save Changes</button>
+        </form>
+    </div>
+
+    <!-- بخش تنظیمات کانفیگ‌ها -->
+    <div class="config-settings">
+        <h3>Configuration Settings 🔧</h3>
+        <form action="/settings/config" method="post">
+            <label for="config-type">Configuration Type:</label>
+            <select id="config-type" name="config-type">
+                <option value="reality">Reality</option>
+                <option value="cdn">CDN</option>
+                <option value="direct">Direct</option>
+            </select>
+
+            <label for="new-port">Set New Port:</label>
+            <input type="number" id="new-port" name="new-port" required>
+            
+            <button type="submit">Apply Config</button>
+        </form>
+
+        <!-- لیست تنظیمات پیش‌فرض -->
+        <div class="default-configs">
+            <h4>Default Configurations 📁</h4>
+            <ul>
+                <li>Reality Config - Port: 443</li>
+                <li>CDN Config - Port: 80</li>
+                <li>Direct Config - Port: 22</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
