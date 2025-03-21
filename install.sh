@@ -91,9 +91,18 @@ if [[ "$ADD_DOMAIN" == "y" ]]; then
     jq ".inbounds[0].streamSettings.tlsSettings.certificates += [{\"certificateFile\": \"$CERT_PATH\", \"keyFile\": \"$KEY_PATH\"}]" "$CONFIG_FILE" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE"
 fi
 
-# ریستارت سرویس‌ها
+# تنظیم مسیر WebSocket در Xray
+echo "تنظیم مسیر WebSocket در کانفیگ Xray..."
+CONFIG_FILE="/usr/local/etc/xray/config.json"
+jq '.inbounds[0].streamSettings += {"wsSettings": {"path": "/websocket"}}' "$CONFIG_FILE" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE"
+
+# راه‌اندازی سرویس‌ها
 echo "راه‌اندازی مجدد سرویس Xray..."
 systemctl daemon-reload
 systemctl restart xray.service || { echo "خطا در راه‌اندازی Xray"; exit 1; }
+
+echo "راه‌اندازی سرویس WireGuard..."
+systemctl enable wg-quick@wg0
+systemctl start wg-quick@wg0 || { echo "خطا در راه‌اندازی WireGuard"; exit 1; }
 
 echo "نصب و پیکربندی با موفقیت انجام شد!"
