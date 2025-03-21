@@ -174,6 +174,23 @@ echo "راه‌اندازی سرویس WireGuard..."
 systemctl enable wg-quick@wg0
 systemctl start wg-quick@wg0 || { echo "خطا در راه‌اندازی WireGuard"; exit 1; }
 
+# ایجاد فایل سرویس Xray
+echo "ایجاد فایل سرویس Xray..."
+cat <<EOL > /etc/systemd/system/xray.service
+[Unit]
+Description=Xray Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/xray -config /usr/local/etc/xray/config.json
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
 # ریستارت سرویس Xray
 echo "راه‌اندازی سرویس Xray..."
 systemctl daemon-reload
