@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Dashboard 🎛️</h2>
+    
+    <!-- بخش خلاصه اطلاعات -->
+    <div class="summary">
+        <div class="card">
+            <h3>Users 👤</h3>
+            <p>Total: <span id="total-users">120</span></p>
+            <a href="/users" class="details-link">Manage Users</a>
+        </div>
+        <div class="card">
+            <h3>Domains 🌐</h3>
+            <p>Total: <span id="total-domains">35</span></p>
+            <a href="/domains" class="details-link">Manage Domains</a>
+        </div>
+        <div class="card">
+            <h3>Configurations ⚙️</h3>
+            <p>Active: <span id="active-configs">12</span></p>
+            <a href="/settings" class="details-link">Manage Configs</a>
+        </div>
+    </div>
+
+    <!-- بخش لاگ‌ها -->
+    <div class="logs">
+        <h3>Recent Logs 📜</h3>
+        <ul id="logs-list">
+            <li>User "JohnDoe" added a new domain - 10 mins ago</li>
+            <li>Configuration updated for port 443 - 1 hour ago</li>
+            <li>Certificate generated for domain "example.com" - 2 days ago</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
