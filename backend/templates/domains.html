@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="domains">
+    <h2>Domain Management 🌐</h2>
+
+    <!-- فرم اضافه کردن دامنه جدید -->
+    <div class="add-domain">
+        <h3>Add New Domain ➕</h3>
+        <form action="/domains" method="post">
+            <label for="domain_name">Domain Name:</label>
+            <input type="text" id="domain_name" name="domain_name" required>
+            
+            <label for="use_cdn">Use CDN:</label>
+            <input type="checkbox" id="use_cdn" name="use_cdn">
+            
+            <label for="use_reality">Use Reality:</label>
+            <input type="checkbox" id="use_reality" name="use_reality">
+            
+            <button type="submit">Add Domain</button>
+        </form>
+    </div>
+
+    <!-- لیست دامنه‌ها -->
+    <div class="domain-list">
+        <h3>Active Domains 📋</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Domain Name</th>
+                    <th>CDN</th>
+                    <th>Reality</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>example.com</td>
+                    <td>✔️</td>
+                    <td>❌</td>
+                    <td>
+                        <button>Edit</button>
+                        <button>Delete</button>
+                    </td>
+                </tr>
+                <!-- دامنه‌های دیگر به صورت پویا اضافه می‌شوند -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
