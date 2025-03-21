@@ -16,6 +16,14 @@ apt update && apt install -y python3 python3-pip sqlite3 unzip jq curl wget wire
 echo "نصب virtualenv..."
 pip3 install virtualenv || { echo "خطا در نصب virtualenv"; exit 1; }
 
+# دانلود و نصب Xray
+echo "دانلود و نصب Xray..."
+curl -Lo xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip || { echo "خطا در دانلود Xray"; exit 1; }
+unzip -o xray.zip -d xray || { echo "خطا در استخراج فایل Xray"; exit 1; }
+mv xray/xray /usr/local/bin/xray || { echo "خطا در انتقال فایل Xray"; exit 1; }
+chmod +x /usr/local/bin/xray || { echo "خطا در تنظیم دسترسی‌های Xray"; exit 1; }
+rm -rf xray xray.zip
+
 # تنظیم دایرکتوری پروژه
 PROJECT_DIR="/opt/backend"
 mkdir -p $PROJECT_DIR
@@ -68,66 +76,24 @@ echo "آیا می‌خواهید دامنه‌ای اضافه کنید یا دا
 read -r ADD_DOMAIN
 
 if [[ "$ADD_DOMAIN" == "y" ]]; then
-    # دریافت نام دامنه از کاربر
-    echo "لطفاً دامنه مورد نظر یا دامنه‌های جدید را وارد کنید، جدا شده با کاما:"
-    read -r DOMAINS
+    # دریافت دامنه‌ها از کاربر
+    echo "لطفاً دامنه جدید را وارد کنید:"
+    read -r DOMAIN_NAME
 
-    # پردازش هر دامنه وارد شده
-    IFS=',' read -r -a DOMAIN_ARRAY <<< "$DOMAINS"
-    for DOMAIN_NAME in "${DOMAIN_ARRAY[@]}"
-    do
-        DOMAIN_NAME=$(echo "$DOMAIN_NAME" | xargs) # حذف فاصله‌های اضافی
-        echo "دریافت گواهی‌های TLS برای دامنه $DOMAIN_NAME..."
-        certbot certonly --standalone --agree-tos --email your-email@example.com -d "$DOMAIN_NAME" || { echo "خطا در دریافت گواهی‌های TLS برای $DOMAIN_NAME"; exit 1; }
+    echo "دریافت گواهی‌های TLS برای دامنه $DOMAIN_NAME..."
+    certbot certonly --standalone --agree-tos --email your-email@example.com -d "$DOMAIN_NAME" || { echo "خطا در دریافت گواهی‌های TLS برای $DOMAIN_NAME"; exit 1; }
 
-        # تنظیم مسیر فایل‌های گواهی در کانفیگ Xray
-        CERT_PATH="/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem"
-        KEY_PATH="/etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem"
-
-        echo "به‌روزرسانی کانفیگ Xray برای دامنه $DOMAIN_NAME..."
-        CONFIG_FILE="/usr/local/etc/xray/config.json"
-        jq ".inbounds[0].streamSettings.tlsSettings.certificates += [{\"certificateFile\": \"$CERT_PATH\", \"keyFile\": \"$KEY_PATH\"}]" "$CONFIG_FILE" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE"
-    done
-else
-    echo "گواهی Self-Signed برای سرور ایجاد می‌شود..."
-
-    # ایجاد گواهی Self-Signed
-    mkdir -p /etc/selfsigned
-    openssl req -newkey rsa:2048 -nodes -keyout /etc/selfsigned/selfsigned.key -x509 -days 365 -out /etc/selfsigned/selfsigned.crt -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
-
-    # تنظیم مسیر فایل‌های گواهی Self-Signed در کانفیگ Xray
-    CERT_PATH="/etc/selfsigned/selfsigned.crt"
-    KEY_PATH="/etc/selfsigned/selfsigned.key"
-
-    echo "به‌روزرسانی کانفیگ Xray برای گواهی Self-Signed..."
+    # به‌روزرسانی کانفیگ Xray
+    CERT_PATH="/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem"
+    KEY_PATH="/etc/letsencrypt/live/$DOMAIN_NAME/privkey.pem"
+    echo "به‌روزرسانی کانفیگ Xray با دامنه جدید $DOMAIN_NAME..."
     CONFIG_FILE="/usr/local/etc/xray/config.json"
     jq ".inbounds[0].streamSettings.tlsSettings.certificates += [{\"certificateFile\": \"$CERT_PATH\", \"keyFile\": \"$KEY_PATH\"}]" "$CONFIG_FILE" > tmp.$$.json && mv tmp.$$.json "$CONFIG_FILE"
 fi
 
-# ایجاد فایل xray.service
-echo "ایجاد فایل سرویس Xray..."
-cat <<EOL > /etc/systemd/system/xray.service
-[Unit]
-Description=Xray Service
-After=network.target
-
-[Service]
-Type=simple
-User=root
-ExecStart=/usr/local/bin/xray -config /usr/local/etc/xray/config.json
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-EOL
-
-# بارگذاری و راه‌اندازی سرویس
+# ریستارت سرویس‌ها
+echo "راه‌اندازی مجدد سرویس Xray..."
 systemctl daemon-reload
-systemctl enable xray.service
-systemctl start xray.service || { echo "خطا در راه‌اندازی Xray"; exit 1; }
-
-# ریستارت سرویس‌های دیگر
-echo "راه‌اندازی سرویس‌های WireGuard و Xray..."
-systemctl restart wg-quick@wg0 || { echo "خطا در ریستارت سرویس WireGuard"; exit 1; }
+systemctl restart xray.service || { echo "خطا در راه‌اندازی Xray"; exit 1; }
 
 echo "نصب و پیکربندی با موفقیت انجام شد!"
